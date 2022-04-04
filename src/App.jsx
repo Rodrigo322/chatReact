@@ -4,6 +4,7 @@ import { useAuthState, useSignInWithGoogle } from "react-firebase-hooks/auth";
 import { useCollectionData } from "react-firebase-hooks/firestore";
 import { app, databaseApp } from "./services/firebaseConfig";
 import { useState } from "react";
+import "./global.css";
 
 const auth = getAuth(app);
 
