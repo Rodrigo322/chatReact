@@ -1,24 +1,28 @@
 import { getAuth } from "firebase/auth";
-import { collection, limit, orderBy, query } from "firebase/firestore";
+import { addDoc, collection, limit, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { useRef, useState } from "react";
 import { useAuthState, useSignInWithGoogle } from "react-firebase-hooks/auth";
 import { useCollectionData } from "react-firebase-hooks/firestore";
-import { app, databaseApp } from "./services/firebaseConfig";
-import { useState } from "react";
 import "./global.css";
+import { app, databaseApp } from "./services/firebaseConfig";
 
 const auth = getAuth(app);
 
 export const App = () => {
   const [user] = useAuthState(auth);
   return (
-    <div>
-      <header></header>
+    <div className='App'>
+      <header>
+         <h1>ReactChat⚛️</h1>
+        <SignOut />
+      </header>
       <section>{user ? <ChatRoom /> : <SignIn />}</section>
     </div>
   );
 };
 
 export const ChatRoom = () => {
+  const dummy = useRef()
   const messagesRef = collection(databaseApp, "messages");
   const q = query(messagesRef, orderBy("createdAt"), limit(25));
   const [messages] = useCollectionData(q, { idField: "id" });
@@ -28,24 +32,30 @@ export const ChatRoom = () => {
     e.preventDefault();
     const { photoURL, uid } = auth.currentUser;
 
-    await messagesRef.add({
+    await addDoc(messagesRef, {
       text: formValue,
+      uid,
+      photoURL,
+      createdAt: serverTimestamp()
     });
+    setFormValue('')
+    dummy.current.scrollIntoView({behavior: 'smooth'})
   };
 
   return (
     <>
-      <div>
+      <main>
         {messages &&
-          messages.map((msg) => <ChatMessage key={msg.id} message={msg} />)}
-      </div>
+          messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
+          <div ref={dummy}></div>
+      </main>
       <form onSubmit={sendMessage}>
         <input
           type="text"
           value={formValue}
           onChange={(e) => setFormValue(e.target.value)}
         />
-        <button type="submit">Enviar</button>
+        <button type="submit"  disabled={!formValue}>Enviar</button>
       </form>
     </>
   );
@@ -54,10 +64,10 @@ export const ChatRoom = () => {
 export const ChatMessage = (props) => {
   const { text, uid, photoURL } = props.message;
 
-  const messageClass = uid === auth.currentUser.uid ? "send" : "received";
+  const messageClass = uid === auth.currentUser.uid ? 'sent' : 'received';
   return (
     <div className={`message ${messageClass}`}>
-      <img src={photoURL} alt="" />
+      <img src={photoURL || 'https://api.adorable.io/avatars/23/abott@adorable.png'} />
       <p>{text}</p>
     </div>
   );
@@ -66,11 +76,11 @@ export const ChatMessage = (props) => {
 export const SignIn = () => {
   const [signInWithGoogle, user, loading, error] = useSignInWithGoogle(auth);
 
-  return <button onClick={() => signInWithGoogle()}>logar com Google</button>;
+  return <button className="sign-in" onClick={() => signInWithGoogle()}>logar com Google</button>;
 };
 
 export const SignOut = () => {
   return (
-    auth.currentUser && <button onClick={() => auth.signOut()}>Sair</button>
+    auth.currentUser && <button className="sign-out" onClick={() => auth.signOut()}>Sair</button>
   );
 };
